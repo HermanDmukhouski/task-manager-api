@@ -15,6 +15,7 @@ from src.application.commands.handlers.create_task_handler import CreateTaskHand
 from src.application.commands.handlers.create_user_handler import CreateUserHandler
 from src.application.commands.handlers.delete_task_handler import DeleteTaskHandler
 from src.application.interfaces.unit_of_work import IUnitOfWork
+from src.application.queries.handlers.get_task_handler import GetTaskHandler
 from src.application.queries.handlers.get_task_stats_handler import GetTaskStatsHandler
 from src.application.queries.handlers.get_user_handler import GetUserHandler
 from src.application.queries.handlers.get_user_tasks_handler import GetUserTasksHandler
@@ -70,6 +71,10 @@ class AppProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_delete_task_handler(self, uow: IUnitOfWork) -> DeleteTaskHandler:
         return DeleteTaskHandler(uow)
+
+    @provide(scope=Scope.REQUEST)
+    def get_get_task_handler(self, uow: IUnitOfWork) -> GetTaskHandler:
+        return GetTaskHandler(uow)
 
     @provide(scope=Scope.REQUEST)
     def get_get_user_handler(self, uow: IUnitOfWork) -> GetUserHandler:

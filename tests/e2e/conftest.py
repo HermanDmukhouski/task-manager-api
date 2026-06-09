@@ -5,11 +5,14 @@ from collections.abc import Generator
 import pytest
 import pytest_asyncio
 from dishka import AsyncContainer
+from httpx import ASGITransport
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from src.config import settings
 from src.infrastructure.db.models import Base
 from src.infrastructure.di.container import create_container
+from src.interfaces.api.main import create_app
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -36,3 +39,13 @@ async def container() -> AsyncIterator[AsyncContainer]:
     c = create_container(database_url=settings.database_url)
     yield c
     await c.close()
+
+
+@pytest_asyncio.fixture
+async def api_client() -> AsyncIterator[AsyncClient]:
+    app = create_app()
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        yield client

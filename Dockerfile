@@ -34,9 +34,14 @@ RUN groupadd --system --gid 1000 app \
 
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 COPY --chown=app:app src ./src
+COPY --chown=app:app alembic ./alembic
+COPY --chown=app:app alembic.ini ./alembic.ini
+COPY --chown=app:app entrypoint.sh ./entrypoint.sh
+
+RUN chmod +x /app/entrypoint.sh
 
 USER app
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "exec uvicorn src.interfaces.api.main:app --host 0.0.0.0 --port ${APP_PORT}"]
+ENTRYPOINT ["/app/entrypoint.sh"]

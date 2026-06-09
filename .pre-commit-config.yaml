@@ -14,5 +14,7 @@ repos:
           - pydantic
           - pydantic-settings
           - sqlalchemy[asyncio]
+          - fastapi
+          - dishka
         args: [--config-file=pyproject.toml]
         files: ^src/

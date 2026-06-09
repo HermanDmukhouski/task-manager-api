@@ -30,8 +30,7 @@ format: ## Format code with ruff
 typecheck: ## Run mypy
 	poetry run mypy src
 
-check: ## Run lint, typecheck and tests
-   lint typecheck test 
+check: lint typecheck test ## Run lint, typecheck and tests
 
 pre-commit: ## Run all pre-commit hooks
 	poetry run pre-commit run --all-files

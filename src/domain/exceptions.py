@@ -16,3 +16,7 @@ class EmptyTitleError(DomainError):
 
 class InvalidTaskStatusError(DomainError):
     pass
+
+
+class DuplicateEmailError(DomainError):
+    pass

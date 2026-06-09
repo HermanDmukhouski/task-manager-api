@@ -54,6 +54,9 @@ class ITaskRepository(ABC):
     ) -> int: ...
 
     @abstractmethod
+    async def update(self, task: TaskAggregate) -> None: ...
+
+    @abstractmethod
     async def delete(self, task_id: int) -> None: ...
 
     @abstractmethod

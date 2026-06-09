@@ -54,6 +54,15 @@ class TaskRepository(ITaskRepository):
         result = await self._session.execute(stmt)
         return int(result.scalar_one())
 
+    async def update(self, task: TaskAggregate) -> None:
+        row = await self._session.get(TaskTable, task.id)
+        if row is not None:
+            row.title = task.title
+            row.description = task.description
+            row.status = task.status.value
+            row.updated_at = task.updated_at
+            await self._session.flush()
+
     async def delete(self, task_id: int) -> None:
         await self._session.execute(delete(TaskTable).where(TaskTable.id == task_id))
 

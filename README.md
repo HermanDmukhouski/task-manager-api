@@ -13,8 +13,11 @@ Backend-сервис для учёта задач пользователей (Fa
 
 ## Быстрый старт (Docker)
 
+Перед запуском скопируйте `.env.example` в `.env`:
+
 ```bash
-docker compose up --build
+cp .env.example .env
+docker compose up -d --build
 ```
 
 - API: http://localhost:8000
@@ -23,10 +26,12 @@ docker compose up --build
 
 ## Локальный запуск (без Docker)
 
-Требуется Python 3.11+ и Poetry.
+Требуется Python 3.11+ и Poetry. Скопируйте `.env.example` в `.env` и в `.env`
+укажите `DATABASE_URL` с хостом `localhost` (в примере для Docker — `postgres`):
 
 ```bash
 cp .env.example .env
+# DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/task_manager
 make install            # poetry install + pre-commit hooks
 docker compose up -d postgres
 make migrate            # alembic upgrade head

@@ -64,6 +64,21 @@ make typecheck          # mypy --strict
 make check              # lint + typecheck + test
 ```
 
+## Переменные окружения
+
+Все переменные задаются в файле `.env` (скопируйте из `.env.example`):
+
+| Переменная          | По умолчанию                                                        | Описание                                          |
+| ------------------- | ------------------------------------------------------------------- | ------------------------------------------------- |
+| `POSTGRES_USER`     | `postgres`                                                          | Пользователь PostgreSQL                           |
+| `POSTGRES_PASSWORD` | `postgres`                                                          | Пароль PostgreSQL                                 |
+| `POSTGRES_DB`       | `task_manager`                                                      | Имя базы данных                                   |
+| `DATABASE_URL`      | `postgresql+asyncpg://postgres:postgres@postgres:5432/task_manager` | DSN подключения (хост `postgres` внутри Docker)   |
+| `APP_PORT`          | `8000`                                                              | Порт, на котором слушает API                      |
+| `ENVIRONMENT`       | `local`                                                             | Окружение (`local` / `production`)                |
+
+> При локальном запуске без Docker замените хост в `DATABASE_URL` с `postgres` на `localhost`.
+
 ## Архитектура
 
 Слоистая архитектура (clean architecture + CQRS):

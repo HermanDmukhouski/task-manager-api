@@ -21,7 +21,7 @@ from src.interfaces.api.schemas import UserResponse
 router = APIRouter(prefix="/users", tags=["users"], route_class=DishkaRoute)
 
 
-@router.post("", response_model=UserResponse, status_code=201)
+@router.post("", status_code=201)
 async def create_user(
     body: UserCreateRequest,
     create_handler: FromDishka[CreateUserHandler],
@@ -29,71 +29,44 @@ async def create_user(
 ) -> UserResponse:
     result = await create_handler.execute(CreateUserCommand(email=body.email, name=body.name))
     user = await get_handler.execute(GetUserQuery(user_id=result.user_id))
-    return UserResponse(
-        id=user.id,
-        email=user.email,
-        name=user.name,
-        created_at=user.created_at,
-    )
+    return UserResponse.model_validate(user)
 
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get("/{user_id}")
 async def get_user(
     user_id: int,
     handler: FromDishka[GetUserHandler],
 ) -> UserResponse:
     user = await handler.execute(GetUserQuery(user_id=user_id))
-    return UserResponse(
-        id=user.id,
-        email=user.email,
-        name=user.name,
-        created_at=user.created_at,
-    )
+    return UserResponse.model_validate(user)
 
 
-@router.get("/{user_id}/tasks/stats", response_model=TaskStatsResponse)
+@router.get("/{user_id}/tasks/stats")
 async def get_user_task_stats(
     user_id: int,
     handler: FromDishka[GetTaskStatsHandler],
 ) -> TaskStatsResponse:
     stats = await handler.execute(GetTaskStatsQuery(user_id=user_id))
-    return TaskStatsResponse(
-        total=stats.total,
-        new=stats.new,
-        in_progress=stats.in_progress,
-        done=stats.done,
-        cancelled=stats.cancelled,
-    )
+    return TaskStatsResponse.model_validate(stats)
 
 
-@router.get("/{user_id}/tasks", response_model=TaskListResponse)
+@router.get("/{user_id}/tasks")
 async def get_user_tasks(
     user_id: int,
     handler: FromDishka[GetUserTasksHandler],
-    status: TaskStatusEnum | None = Query(default=None),
+    status: TaskStatusEnum = Query(default=None, description="Filter by task status"),
     limit: int = Query(default=20, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
+    cursor: str = Query(default=None, description="Paste cursor from next_cursor"),
 ) -> TaskListResponse:
     result = await handler.execute(
         GetUserTasksQuery(
             user_id=user_id,
             status=status,
             limit=limit,
-            offset=offset,
+            cursor=cursor,
         )
     )
     return TaskListResponse(
-        items=[
-            TaskResponse(
-                id=t.id,
-                user_id=t.user_id,
-                title=t.title,
-                description=t.description,
-                status=t.status,
-                created_at=t.created_at,
-                updated_at=t.updated_at,
-            )
-            for t in result.items
-        ],
-        total=result.total,
+        items=[TaskResponse.model_validate(t) for t in result.items],
+        next_cursor=result.next_cursor,
     )

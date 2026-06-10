@@ -8,7 +8,6 @@ from dishka import provide
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from src.application.commands.handlers.change_task_status_handler import ChangeTaskStatusHandler
 from src.application.commands.handlers.create_task_handler import CreateTaskHandler
@@ -20,6 +19,7 @@ from src.application.queries.handlers.get_task_stats_handler import GetTaskStats
 from src.application.queries.handlers.get_user_handler import GetUserHandler
 from src.application.queries.handlers.get_user_tasks_handler import GetUserTasksHandler
 from src.config import settings
+from src.infrastructure.db.database import create_db_engine
 from src.infrastructure.db.database import create_session_factory
 from src.infrastructure.db.unit_of_work import SQLAlchemyUnitOfWork
 
@@ -30,12 +30,10 @@ class AppProvider(Provider):
         self._database_url = database_url or settings.database_url
 
     @provide(scope=Scope.APP)
-    def get_engine(self) -> AsyncEngine:
-        return create_async_engine(
-            self._database_url,
-            echo=settings.environment == "local",
-            pool_pre_ping=True,
-        )
+    async def get_engine(self) -> AsyncIterator[AsyncEngine]:
+        engine = create_db_engine(self._database_url)
+        yield engine
+        await engine.dispose()
 
     @provide(scope=Scope.APP)
     def get_session_factory(

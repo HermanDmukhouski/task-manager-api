@@ -8,3 +8,7 @@ class NotFoundError(ApplicationError):
 
 class ConflictError(ApplicationError):
     pass
+
+
+class InvalidCursorError(ApplicationError):
+    pass

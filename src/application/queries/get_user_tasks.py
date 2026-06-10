@@ -10,4 +10,4 @@ class GetUserTasksQuery(Query):
     user_id: int
     status: TaskStatusEnum | None = field(default=None)
     limit: int = field(default=20)
-    offset: int = field(default=0)
+    cursor: str | None = field(default=None)

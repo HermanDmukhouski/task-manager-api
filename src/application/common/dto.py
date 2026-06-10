@@ -26,7 +26,7 @@ class TaskResponse:
 @dataclass(frozen=True)
 class UserTasksResponse:
     items: list[TaskResponse]
-    total: int
+    next_cursor: str | None
 
 
 @dataclass(frozen=True)

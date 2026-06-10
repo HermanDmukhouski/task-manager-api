@@ -41,7 +41,7 @@ class TaskResponse(BaseModel):
 
 class TaskListResponse(BaseModel):
     items: list[TaskResponse]
-    total: int
+    next_cursor: str | None = None
 
 
 class TaskStatusUpdateRequest(BaseModel):
@@ -49,15 +49,13 @@ class TaskStatusUpdateRequest(BaseModel):
 
 
 class TaskStatsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     total: int
     new: int
     in_progress: int
     done: int
     cancelled: int
-
-
-class DeletedResponse(BaseModel):
-    ok: bool = True
 
 
 class ErrorResponse(BaseModel):

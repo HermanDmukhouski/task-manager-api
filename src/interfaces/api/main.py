@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import AsyncEngine
 
 from src.infrastructure.di.container import create_container
 from src.interfaces.api.exception_handlers import register_exception_handlers
@@ -21,10 +20,8 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
-    container = app.state.dishka_container
-    engine = await container.get(AsyncEngine)
-    await engine.dispose()
-    await container.close()
+    # Контейнер сам закрывает APP-scope ресурсы, включая dispose() движка БД.
+    await app.state.dishka_container.close()
 
 
 def create_app() -> FastAPI:

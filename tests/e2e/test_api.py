@@ -132,8 +132,44 @@ async def test_get_user_tasks_returns_list(api_client: AsyncClient) -> None:
 
     assert resp.status_code == 200
     data = resp.json()
-    assert data["total"] == 2
     assert len(data["items"]) == 2
+    assert data["next_cursor"] is None
+
+
+async def test_get_user_tasks_cursor_pagination(api_client: AsyncClient) -> None:
+    user = await _create_user(api_client, email="cursortasks@example.com")
+    for i in range(3):
+        await _create_task(api_client, user["id"], f"Task {i}")
+
+    first = await api_client.get(f"/users/{user['id']}/tasks", params={"limit": 2})
+    assert first.status_code == 200
+    first_data = first.json()
+    assert len(first_data["items"]) == 2
+    assert first_data["next_cursor"] is not None
+
+    second = await api_client.get(
+        f"/users/{user['id']}/tasks",
+        params={"limit": 2, "cursor": first_data["next_cursor"]},
+    )
+    assert second.status_code == 200
+    second_data = second.json()
+    assert len(second_data["items"]) == 1
+    assert second_data["next_cursor"] is None
+
+    first_ids = {t["id"] for t in first_data["items"]}
+    second_ids = {t["id"] for t in second_data["items"]}
+    assert first_ids.isdisjoint(second_ids)
+
+
+async def test_get_user_tasks_invalid_cursor_returns_422(api_client: AsyncClient) -> None:
+    user = await _create_user(api_client, email="badcursor@example.com")
+
+    resp = await api_client.get(
+        f"/users/{user['id']}/tasks",
+        params={"cursor": "garbage"},
+    )
+
+    assert resp.status_code == 422
 
 
 async def test_get_user_tasks_filter_by_status(api_client: AsyncClient) -> None:
@@ -143,7 +179,7 @@ async def test_get_user_tasks_filter_by_status(api_client: AsyncClient) -> None:
     resp = await api_client.get(f"/users/{user['id']}/tasks", params={"status": "done"})
 
     assert resp.status_code == 200
-    assert resp.json()["total"] == 0
+    assert resp.json()["items"] == []
 
 
 # ── PATCH /tasks/{id}/status ──────────────────────────────────────────────────
@@ -191,8 +227,10 @@ async def test_delete_task_success(api_client: AsyncClient) -> None:
 
     resp = await api_client.delete(f"/tasks/{task['id']}")
 
-    assert resp.status_code == 200
-    assert resp.json()["ok"] is True
+    assert resp.status_code == 204
+
+    resp = await api_client.delete(f"/tasks/{task['id']}")
+    assert resp.status_code == 404
 
 
 async def test_delete_task_not_found_returns_404(api_client: AsyncClient) -> None:

@@ -1,20 +1,43 @@
 import logging
 import time
 
-from fastapi import Request
-from fastapi import Response
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.middleware.base import RequestResponseEndpoint
+from starlette.types import ASGIApp
+from starlette.types import Message
+from starlette.types import Receive
+from starlette.types import Scope
+from starlette.types import Send
 
 logger = logging.getLogger("api")
 
 
-class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+class LoggingMiddleware:
+    """Чистый ASGI-middleware: без накладных расходов BaseHTTPMiddleware."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self._app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+
         start = time.monotonic()
-        response = await call_next(request)
-        elapsed_ms = (time.monotonic() - start) * 1000
-        logger.info(
-            f"{request.method} {request.url.path} -> {response.status_code} ({elapsed_ms:.1f}ms)"
-        )
-        return response
+        status_code = 500
+
+        async def send_wrapper(message: Message) -> None:
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+            await send(message)
+
+        try:
+            await self._app(scope, receive, send_wrapper)
+        finally:
+            elapsed_ms = (time.monotonic() - start) * 1000
+            logger.info(
+                "%s %s -> %s (%.1fms)",
+                scope["method"],
+                scope["path"],
+                status_code,
+                elapsed_ms,
+            )

@@ -2,6 +2,7 @@ from abc import ABC
 from abc import abstractmethod
 from typing import NamedTuple
 
+from src.application.common.pagination import TaskCursor
 from src.domain.entities.task import TaskAggregate
 from src.domain.entities.user import UserAggregate
 from src.domain.value_objects import EmailValueObject
@@ -43,15 +44,8 @@ class ITaskRepository(ABC):
         user_id: int,
         status: TaskStatusEnum | None,
         limit: int,
-        offset: int,
+        cursor: TaskCursor | None,
     ) -> list[TaskAggregate]: ...
-
-    @abstractmethod
-    async def count_by_user_id(
-        self,
-        user_id: int,
-        status: TaskStatusEnum | None,
-    ) -> int: ...
 
     @abstractmethod
     async def update(self, task: TaskAggregate) -> None: ...

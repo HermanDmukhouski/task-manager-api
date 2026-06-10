@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
+from sqlalchemy import Index
 from sqlalchemy import String
 from sqlalchemy import Text
 from sqlalchemy.orm import DeclarativeBase
@@ -21,7 +22,7 @@ class Base(DeclarativeBase):
 class UserTable(Base):
     __tablename__ = "users"
 
-    id: Mapped[int | None] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -29,12 +30,10 @@ class UserTable(Base):
 
 class TaskTable(Base):
     __tablename__ = "tasks"
+    __table_args__ = (Index("ix_tasks_user_id_created_at_id", "user_id", "created_at", "id"),)
 
-    id: Mapped[int | None] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        index=True,
-    )
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(50))
@@ -43,8 +42,6 @@ class TaskTable(Base):
 
 
 def user_to_domain(row: UserTable) -> UserAggregate:
-    if row.id is None:
-        raise ValueError("Cannot map unpersisted user row to domain")
     return UserAggregate(
         id=row.id,
         email=EmailValueObject(value=row.email),
@@ -62,8 +59,6 @@ def user_from_domain(user: UserAggregate) -> UserTable:
 
 
 def task_to_domain(row: TaskTable) -> TaskAggregate:
-    if row.id is None:
-        raise ValueError("Cannot map unpersisted task row to domain")
     return TaskAggregate(
         id=row.id,
         user_id=row.user_id,

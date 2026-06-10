@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from src.application.common.exceptions import ConflictError
+from src.application.common.exceptions import InvalidCursorError
 from src.application.common.exceptions import NotFoundError
 from src.domain.exceptions import DomainError
 from src.domain.exceptions import InvalidTaskStatusError
@@ -22,6 +23,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(ConflictError)
     async def conflict_handler(request: Request, exc: ConflictError) -> JSONResponse:
         return JSONResponse(status_code=409, content=_error(str(exc)))
+
+    @app.exception_handler(InvalidCursorError)
+    async def invalid_cursor_handler(request: Request, exc: InvalidCursorError) -> JSONResponse:
+        return JSONResponse(status_code=422, content=_error(str(exc)))
 
     @app.exception_handler(InvalidTaskStatusError)
     async def invalid_status_handler(request: Request, exc: InvalidTaskStatusError) -> JSONResponse:

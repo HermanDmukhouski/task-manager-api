@@ -2,8 +2,10 @@ from sqlalchemy import case
 from sqlalchemy import delete
 from sqlalchemy import func
 from sqlalchemy import select
+from sqlalchemy import tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.common.pagination import TaskCursor
 from src.application.interfaces.repositories import ITaskRepository
 from src.application.interfaces.repositories import TaskStats
 from src.domain.entities.task import TaskAggregate
@@ -34,25 +36,18 @@ class TaskRepository(ITaskRepository):
         user_id: int,
         status: TaskStatusEnum | None,
         limit: int,
-        offset: int,
+        cursor: TaskCursor | None,
     ) -> list[TaskAggregate]:
         stmt = select(TaskTable).where(TaskTable.user_id == user_id)
         if status is not None:
             stmt = stmt.where(TaskTable.status == status.value)
-        stmt = stmt.order_by(TaskTable.created_at.desc()).limit(limit).offset(offset)
+        if cursor is not None:
+            stmt = stmt.where(
+                tuple_(TaskTable.created_at, TaskTable.id) < (cursor.created_at, cursor.id)
+            )
+        stmt = stmt.order_by(TaskTable.created_at.desc(), TaskTable.id.desc()).limit(limit)
         result = await self._session.execute(stmt)
         return [task_to_domain(row) for row in result.scalars()]
-
-    async def count_by_user_id(
-        self,
-        user_id: int,
-        status: TaskStatusEnum | None,
-    ) -> int:
-        stmt = select(func.count()).select_from(TaskTable).where(TaskTable.user_id == user_id)
-        if status is not None:
-            stmt = stmt.where(TaskTable.status == status.value)
-        result = await self._session.execute(stmt)
-        return int(result.scalar_one())
 
     async def update(self, task: TaskAggregate) -> None:
         row = await self._session.get(TaskTable, task.id)

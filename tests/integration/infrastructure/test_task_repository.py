@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.common.pagination import TaskCursor
 from src.domain.entities.task import TaskAggregate
 from src.domain.entities.user import UserAggregate
 from src.domain.value_objects import TaskStatusEnum
@@ -52,21 +53,46 @@ async def test_get_by_user_id_filters_and_paginates(
     for title in ("T1", "T2", "T3"):
         await task_repo.add(TaskAggregate.create(user_id=user.id, title=title))
 
-    all_tasks = await task_repo.get_by_user_id(user_id=user.id, status=None, limit=10, offset=0)
+    all_tasks = await task_repo.get_by_user_id(user_id=user.id, status=None, limit=10, cursor=None)
     assert len(all_tasks) == 3
 
     by_status = await task_repo.get_by_user_id(
-        user_id=user.id, status=TaskStatusEnum.NEW, limit=10, offset=0
+        user_id=user.id, status=TaskStatusEnum.NEW, limit=10, cursor=None
     )
     assert len(by_status) == 3
 
     no_done = await task_repo.get_by_user_id(
-        user_id=user.id, status=TaskStatusEnum.DONE, limit=10, offset=0
+        user_id=user.id, status=TaskStatusEnum.DONE, limit=10, cursor=None
     )
     assert len(no_done) == 0
 
-    paginated = await task_repo.get_by_user_id(user_id=user.id, status=None, limit=2, offset=0)
+    paginated = await task_repo.get_by_user_id(user_id=user.id, status=None, limit=2, cursor=None)
     assert len(paginated) == 2
+
+
+async def test_get_by_user_id_keyset_cursor(
+    user_repo: UserRepository,
+    task_repo: TaskRepository,
+) -> None:
+    user = await _make_user(user_repo, "cursor@example.com")
+    assert user.id is not None
+
+    for title in ("T1", "T2", "T3"):
+        await task_repo.add(TaskAggregate.create(user_id=user.id, title=title))
+
+    first_page = await task_repo.get_by_user_id(user_id=user.id, status=None, limit=2, cursor=None)
+    assert len(first_page) == 2
+    last = first_page[-1]
+    assert last.id is not None
+
+    cursor = TaskCursor(created_at=last.created_at, id=last.id)
+    second_page = await task_repo.get_by_user_id(
+        user_id=user.id, status=None, limit=2, cursor=cursor
+    )
+
+    assert len(second_page) == 1
+    first_ids = {t.id for t in first_page}
+    assert second_page[0].id not in first_ids
 
 
 async def test_delete_removes_task(

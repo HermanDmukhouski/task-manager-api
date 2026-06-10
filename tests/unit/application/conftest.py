@@ -1,6 +1,7 @@
 from types import TracebackType
 from typing import Self
 
+from src.application.common.pagination import TaskCursor
 from src.application.interfaces.repositories import ITaskRepository
 from src.application.interfaces.repositories import IUserRepository
 from src.application.interfaces.repositories import TaskStats
@@ -52,22 +53,15 @@ class FakeTaskRepository(ITaskRepository):
         user_id: int,
         status: TaskStatusEnum | None,
         limit: int,
-        offset: int,
+        cursor: TaskCursor | None,
     ) -> list[TaskAggregate]:
-        items = [t for t in self._store.values() if t.user_id == user_id]
+        items = [t for t in self._store.values() if t.user_id == user_id and t.id is not None]
         if status is not None:
             items = [t for t in items if t.status == status]
-        return items[offset : offset + limit]
-
-    async def count_by_user_id(
-        self,
-        user_id: int,
-        status: TaskStatusEnum | None,
-    ) -> int:
-        items = [t for t in self._store.values() if t.user_id == user_id]
-        if status is not None:
-            items = [t for t in items if t.status == status]
-        return len(items)
+        items.sort(key=lambda t: (t.created_at, t.id or 0), reverse=True)
+        if cursor is not None:
+            items = [t for t in items if (t.created_at, t.id or 0) < (cursor.created_at, cursor.id)]
+        return items[:limit]
 
     async def update(self, task: TaskAggregate) -> None:
         if task.id is not None:
